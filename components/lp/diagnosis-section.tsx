@@ -5,36 +5,23 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Calculator, AlertTriangle, Mail } from "lucide-react"
+import { Calculator, TrendingUp, Mail, FileCheck, MessageSquare, Package } from "lucide-react"
 
 const QUOTE_MAIL_TO = "info@nichbase.com"
-const MAIL_SUBJECT = "運賃交渉資料の作成依頼"
+const MAIL_SUBJECT = "運賃交渉資料のお見積もり依頼"
 
 type DiagnosisResult = {
   suggestedFare: number
   difference: number
   monthlyLoss: number
   annualLoss: number
+  upratePercent: number
 }
 
 type InquiryFields = {
-  companyName: string
-  contactName: string
   contactEmail: string
-  contactPhone: string
-  requestNote: string
 }
 
-/** メール本文内の金額表記（例: 10,000 円）を統一 */
 function formatYenForMail(n: number): string {
   return `${n.toLocaleString("en-US")} 円`
 }
@@ -46,49 +33,47 @@ type DiagnosisMailPayload = {
   currentFareYen: number
 }
 
-function generateMailtoLink(inquiry: InquiryFields, diagnosis: DiagnosisMailPayload | null): string {
+function generateMailtoLink(
+  email: string,
+  diagnosis: DiagnosisMailPayload | null,
+): string {
   const subject = encodeURIComponent(MAIL_SUBJECT)
-  const noteBlock =
-    inquiry.requestNote.trim() !== ""
-      ? `【ご要望・備考】\n${inquiry.requestNote.trim()}\n\n`
-      : ""
 
   const introLines = diagnosis
-    ? `運賃交渉に用いる資料の作成について、お見積りとご相談をお願いいたします。\nLPの無料診断シミュレーション結果を下記に記載します。\n\n`
-    : `運賃交渉に用いる資料の作成について、お見積りとご相談をお願いいたします。\n※無料診断シミュレーションは未実施です。\n\n`
+    ? `運賃交渉資料のお見積もりをお願いいたします。\n診断結果を下記に記載します。\n\n`
+    : `運賃交渉資料のお見積もりをお願いいたします。\n※無料診断は未実施です。\n\n`
+
+  const fiveYear = diagnosis ? Math.round(diagnosis.result.annualLoss * 5) : 0
 
   const diagnosisBlock = diagnosis
     ? `【診断結果】\n` +
-      `・車格：${diagnosis.vehicleLabel}\n` +
-      `・距離：${diagnosis.distanceLabel}\n` +
       `・現在運賃：${formatYenForMail(diagnosis.currentFareYen)}\n` +
-      `・目安運賃（現在+10%）：${formatYenForMail(diagnosis.result.suggestedFare)}\n` +
-      `・年間損失（試算）：${formatYenForMail(diagnosis.result.annualLoss)}\n\n`
+      `・値上げ余地：+${diagnosis.result.upratePercent}%\n` +
+      `・目安運賃：${formatYenForMail(diagnosis.result.suggestedFare)}\n` +
+      `・年間損失（試算）：${formatYenForMail(diagnosis.result.annualLoss)}\n` +
+      `・5年間の累積損失（試算）：${formatYenForMail(fiveYear)}\n\n`
     : ""
 
-  const closing =
-    `このたびお問い合わせいただきありがとうございます。\n` +
-    `内容を拝見のうえ、担当より改めてご連絡し、お見積りと具体的な進め方についてご案内いたします。\n` +
-    `お急ぎの場合やご不明点がございましたら、このメールへのご返信またはお電話にてお気軽にお知らせください。`
+  const routeBlock = diagnosis
+    ? `【ルート情報】\n` +
+      `・車格：${diagnosis.vehicleLabel}\n` +
+      `・距離：${diagnosis.distanceLabel}\n\n`
+    : `【補足】\n` + `・車格・距離・発着地はメール返信で共有します\n\n`
 
   const bodyPlain =
-    `【見積・依頼】\n` +
     introLines +
-    `【貴社情報】\n` +
-    `・会社名：${inquiry.companyName.trim()}\n` +
-    `・担当者：${inquiry.contactName.trim()}\n` +
-    `・メール：${inquiry.contactEmail.trim()}\n` +
-    `・電話：${inquiry.contactPhone.trim()}\n\n` +
-    noteBlock +
+    `【連絡先】\n` +
+    `・メール：${email.trim()}\n\n` +
+    routeBlock +
     diagnosisBlock +
-    closing
+    `お見積もりと商品詳細をお送りください。`
 
   const body = encodeURIComponent(bodyPlain)
   return `mailto:${QUOTE_MAIL_TO}?subject=${subject}&body=${body}`
 }
 
-/** デモ用：目安運賃を「現在運賃 ×（1 + この率）」で算出 */
 const SUGGESTED_UPRATE = 0.1
+const UPRATE_PERCENT = 10
 
 const VEHICLE_OPTIONS = [
   { value: "4t", label: "4トン車" },
@@ -102,24 +87,23 @@ const DISTANCE_OPTIONS = [
 ]
 
 const emptyInquiry: InquiryFields = {
-  companyName: "",
-  contactName: "",
   contactEmail: "",
-  contactPhone: "",
-  requestNote: "",
 }
 
 type QuoteMailMode = "with-diagnosis" | "without-diagnosis"
+
+function scrollToInquiryForm() {
+  document.getElementById("inquiry")?.scrollIntoView({ behavior: "smooth", block: "start" })
+}
 
 export function DiagnosisSection() {
   const [vehicleClass, setVehicleClass] = useState<string>("")
   const [distance, setDistance] = useState<string>("")
   const [currentFare, setCurrentFare] = useState<string>("")
   const [showResult, setShowResult] = useState(false)
-  const [quoteDialogOpen, setQuoteDialogOpen] = useState(false)
   const [quoteMailMode, setQuoteMailMode] = useState<QuoteMailMode>("without-diagnosis")
   const [inquiry, setInquiry] = useState<InquiryFields>(emptyInquiry)
-  const [inquiryErrors, setInquiryErrors] = useState<Partial<Record<keyof InquiryFields, string>>>({})
+  const [inquiryErrors, setInquiryErrors] = useState<Record<string, string>>({})
 
   const result = useMemo(() => {
     const fareNum = parseFloat(currentFare)
@@ -128,12 +112,9 @@ export function DiagnosisSection() {
       return null
     }
 
-    // 目安運賃 = 現在運賃 + 10%（デモ用の単純モデル）
     const difference = Math.round(fareNum * SUGGESTED_UPRATE)
     const suggestedFare = fareNum + difference
-    // 月損失 = 差額 × 月間回数（仮20）
     const monthlyLoss = difference * 20
-    // 年間損失 = 月損失 × 12
     const annualLoss = monthlyLoss * 12
 
     return {
@@ -141,6 +122,7 @@ export function DiagnosisSection() {
       difference,
       monthlyLoss: Math.round(monthlyLoss),
       annualLoss: Math.round(annualLoss),
+      upratePercent: UPRATE_PERCENT,
     }
   }, [vehicleClass, distance, currentFare])
 
@@ -154,37 +136,29 @@ export function DiagnosisSection() {
   const distanceLabel = DISTANCE_OPTIONS.find((d) => d.value === distance)?.label || ""
 
   const validateInquiry = useCallback((): boolean => {
-    const next: Partial<Record<keyof InquiryFields, string>> = {}
-    if (!inquiry.companyName.trim()) next.companyName = "会社名を入力してください"
-    if (!inquiry.contactName.trim()) next.contactName = "担当者名を入力してください"
+    const next: Record<string, string> = {}
     if (!inquiry.contactEmail.trim()) {
       next.contactEmail = "メールアドレスを入力してください"
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inquiry.contactEmail.trim())) {
       next.contactEmail = "有効なメール形式で入力してください"
     }
-    if (!inquiry.contactPhone.trim()) next.contactPhone = "電話番号を入力してください"
     setInquiryErrors(next)
     return Object.keys(next).length === 0
   }, [inquiry])
 
   const openMailClient = useCallback(() => {
+    const isDiag = quoteMailMode === "with-diagnosis"
+
     const diagnosis: DiagnosisMailPayload | null =
-      quoteMailMode === "with-diagnosis" && result
+      isDiag && result
         ? (() => {
             const fare = parseInt(currentFare, 10)
             if (isNaN(fare)) return null
-            return {
-              result,
-              vehicleLabel,
-              distanceLabel,
-              currentFareYen: fare,
-            }
+            return { result, vehicleLabel, distanceLabel, currentFareYen: fare }
           })()
         : null
 
-    if (quoteMailMode === "with-diagnosis" && !diagnosis) return
-
-    const href = generateMailtoLink(inquiry, diagnosis)
+    const href = generateMailtoLink(inquiry.contactEmail, diagnosis)
     window.location.href = href
   }, [quoteMailMode, result, currentFare, vehicleLabel, distanceLabel, inquiry])
 
@@ -192,47 +166,39 @@ export function DiagnosisSection() {
     e.preventDefault()
     if (!validateInquiry()) return
     openMailClient()
-    setQuoteDialogOpen(false)
   }
 
+  const fiveYearLoss = result ? Math.round(result.annualLoss * 5) : 0
+
   return (
-    <section id="diagnosis" className="bg-slate-50 px-4 py-16 sm:py-20">
-      <div className="mx-auto max-w-md">
+    <section id="diagnosis" className="bg-slate-50 px-5 py-14 sm:py-16">
+      <div className="mx-auto max-w-2xl">
+        {/* --- 3-A: 入力フォーム --- */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg">
             <Calculator className="h-7 w-7 text-white" />
           </div>
-          <p className="mb-2 text-sm font-medium text-amber-600">
-            {"無料診断"}
-          </p>
-          <h2 className="mb-2 text-xl font-bold text-slate-900 sm:text-2xl">
-            <span className="text-amber-600">{"1分"}</span>{"で取りこぼし額が分かります"}
+          <p className="text-sm font-medium text-amber-600">運送会社向け 無料診断</p>
+          <h2 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
+            運送会社向け：<span className="text-amber-600">30秒</span>で値上げ可能額を表示
           </h2>
-          <p className="mb-3 text-sm text-slate-600">
-            {"診断をせずに、まず見積・依頼だけされたい方はこちらからどうぞ。"}
-          </p>
-          <Button
+          <button
             type="button"
-            variant="outline"
-            className="mb-6 w-full border-slate-300 bg-white py-6 text-base font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
+            className="mt-4 text-sm text-slate-500 underline hover:text-slate-700"
             onClick={() => {
               setInquiryErrors({})
               setQuoteMailMode("without-diagnosis")
-              setQuoteDialogOpen(true)
+              scrollToInquiryForm()
             }}
           >
-            <Mail className="mr-2 h-5 w-5 shrink-0 text-amber-700" />
-            {"診断なしで見積・依頼する"}
-          </Button>
+            診断せずに見積もりを依頼する
+          </button>
         </div>
 
-        <Card className="border-slate-200 bg-white shadow-xl">
+        <Card className="border-slate-200 bg-white shadow-lg">
           <CardContent className="space-y-5 pt-6">
-            {/* 車格選択 */}
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">
-                {"車格"}
-              </Label>
+              <Label className="text-sm font-semibold text-slate-700">車格</Label>
               <div className="grid grid-cols-2 gap-2">
                 {VEHICLE_OPTIONS.map((option) => (
                   <button
@@ -242,7 +208,7 @@ export function DiagnosisSection() {
                       setVehicleClass(option.value)
                       setShowResult(false)
                     }}
-                    className={`rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all ${
+                    className={`rounded-lg border-2 px-4 py-3 text-base font-medium transition-all ${
                       vehicleClass === option.value
                         ? "border-amber-500 bg-amber-50 text-amber-700"
                         : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
@@ -254,11 +220,8 @@ export function DiagnosisSection() {
               </div>
             </div>
 
-            {/* 距離選択 */}
             <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700">
-                {"距離"}
-              </Label>
+              <Label className="text-sm font-semibold text-slate-700">距離</Label>
               <div className="grid grid-cols-3 gap-2">
                 {DISTANCE_OPTIONS.map((option) => (
                   <button
@@ -268,7 +231,7 @@ export function DiagnosisSection() {
                       setDistance(option.value)
                       setShowResult(false)
                     }}
-                    className={`rounded-lg border-2 px-3 py-3 text-sm font-medium transition-all ${
+                    className={`rounded-lg border-2 px-3 py-3 text-base font-medium transition-all ${
                       distance === option.value
                         ? "border-amber-500 bg-amber-50 text-amber-700"
                         : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
@@ -280,10 +243,9 @@ export function DiagnosisSection() {
               </div>
             </div>
 
-            {/* 現在運賃入力 */}
             <div className="space-y-2">
               <Label htmlFor="currentFare" className="text-sm font-semibold text-slate-700">
-                {"現在の運賃（円）"}
+                現在の運賃（円）
               </Label>
               <Input
                 id="currentFare"
@@ -294,39 +256,35 @@ export function DiagnosisSection() {
                   setCurrentFare(e.target.value)
                   setShowResult(false)
                 }}
-                className="border-slate-200 bg-white text-center text-lg font-medium focus:border-amber-500 focus:ring-amber-500"
+                className="border-slate-200 bg-white py-3 text-center text-lg font-medium focus:border-amber-500 focus:ring-amber-500"
               />
             </div>
 
             <Button
+              type="button"
               onClick={handleSubmit}
               disabled={!result}
               size="lg"
-              className="group relative w-full overflow-hidden bg-gradient-to-r from-amber-500 to-orange-500 py-6 text-base font-bold text-white shadow-lg shadow-orange-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/30 disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 py-7 text-lg font-bold text-white shadow-md disabled:opacity-50"
             >
-              <span className="relative z-10">{"取りこぼし額を計算する"}</span>
-              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-500 group-hover:translate-x-full" />
+              運送会社向け 値上げ可能額を確認
             </Button>
           </CardContent>
         </Card>
 
+        {/* --- 3-B: 結果表示 --- */}
         {showResult && result && (
           <div className="mt-6 space-y-4">
-            <Card className="border-red-200 bg-red-50 shadow-lg">
+            <Card className="border-amber-300 bg-gradient-to-b from-amber-50 to-white shadow-md">
               <CardContent className="py-6 text-center">
-                <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
-                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-amber-100">
+                  <TrendingUp className="h-5 w-5 text-amber-600" />
                 </div>
-                <p className="mb-1 text-sm text-slate-600">
-                  {"あなたの年間取りこぼし額"}
+                <p className="text-sm text-slate-600">あなたの運賃は</p>
+                <p className="mt-1 text-4xl font-bold text-amber-600 sm:text-5xl">
+                  +{result.upratePercent}%<span className="text-4xl sm:text-5xl">以上</span>
                 </p>
-                <p className="text-3xl font-bold text-red-600 sm:text-4xl">
-                  {result.annualLoss.toLocaleString()}
-                  <span className="ml-1 text-xl">{"円"}</span>
-                </p>
-                <p className="mt-3 text-xs text-slate-500">
-                  {"※1運行あたり「現在比+10%」を取りこぼしとみなし、月20回×12ヶ月で試算"}
-                </p>
+                <p className="mt-2 text-base font-bold text-slate-900">値上げ余地があります</p>
               </CardContent>
             </Card>
 
@@ -334,20 +292,28 @@ export function DiagnosisSection() {
               <CardContent className="py-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-slate-600">{"現在の運賃"}</span>
-                    <span className="font-medium text-slate-900">{parseInt(currentFare).toLocaleString()} {"円"}</span>
+                    <span className="text-slate-600">現在の運賃</span>
+                    <span className="font-medium text-slate-900">
+                      {parseInt(currentFare, 10).toLocaleString()} 円
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">{"目安運賃（現在＋10%）"}</span>
-                    <span className="font-medium text-amber-600">{result.suggestedFare.toLocaleString()} {"円"}</span>
+                    <span className="text-slate-600">目安運賃（+{result.upratePercent}%）</span>
+                    <span className="font-medium text-amber-600">
+                      {result.suggestedFare.toLocaleString()} 円
+                    </span>
                   </div>
                   <div className="flex justify-between border-t border-slate-100 pt-2">
-                    <span className="text-slate-600">{"1回あたりの差額（10%分）"}</span>
-                    <span className="font-bold text-red-600">+{result.difference.toLocaleString()} {"円"}</span>
+                    <span className="text-slate-600">年間損失（試算）</span>
+                    <span className="font-bold text-red-600">
+                      {result.annualLoss.toLocaleString()} 円
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">{"月間損失（20回）"}</span>
-                    <span className="font-bold text-red-600">+{result.monthlyLoss.toLocaleString()} {"円"}</span>
+                    <span className="text-slate-600">5年間の累積損失</span>
+                    <span className="font-bold text-red-600">
+                      {fiveYearLoss.toLocaleString()} 円
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -358,144 +324,136 @@ export function DiagnosisSection() {
               onClick={() => {
                 setInquiryErrors({})
                 setQuoteMailMode("with-diagnosis")
-                setQuoteDialogOpen(true)
+                scrollToInquiryForm()
               }}
-              className="group relative h-auto w-full overflow-hidden rounded-lg bg-gradient-to-r from-slate-800 to-slate-900 py-4 text-base font-bold text-white shadow-lg transition-all duration-300 hover:shadow-xl"
+              className="h-auto w-full bg-gradient-to-r from-slate-800 to-slate-900 py-4 text-base font-bold text-white"
             >
               <Mail className="mr-2 h-5 w-5" />
-              <span>{"この損失を止める（交渉資料を依頼する）"}</span>
-              <div className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-500 group-hover:translate-x-full" />
+              運送会社向け 見積もりを依頼する
             </Button>
 
             <button
+              type="button"
               onClick={() => setShowResult(false)}
-              className="block w-full text-center text-sm text-slate-500 underline transition-colors hover:text-slate-700"
+              className="block w-full text-center text-sm text-slate-500 underline hover:text-slate-700"
             >
-              {"条件を変更して再計算"}
+              条件を変更して再計算
             </button>
           </div>
         )}
 
-        <Dialog
-          open={quoteDialogOpen}
-          onOpenChange={(open) => {
-            setQuoteDialogOpen(open)
-            if (!open) setInquiryErrors({})
-          }}
-        >
-          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
-            <form onSubmit={handleQuoteSubmit}>
-              <DialogHeader>
-                <DialogTitle>{"見積・依頼（メール作成）"}</DialogTitle>
-                <DialogDescription>
-                  {quoteMailMode === "with-diagnosis"
-                    ? "診断結果の数値がメール本文に含まれます。送信でメールアプリが開きます。"
-                    : "診断は未実施の依頼です。診断数値はメールに含まれません。送信でメールアプリが開きます。"}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="quote-company">{"会社名"}</Label>
+        {/* --- 3-C: 追い込みブロック --- */}
+        <div className="mt-10 rounded-xl border border-slate-200 bg-white px-6 py-8 text-center shadow-sm">
+          <p className="text-base leading-relaxed text-slate-700">
+            値上げできない理由は
+            <br />
+            <span className="font-bold text-slate-900">「交渉力」ではありません。</span>
+          </p>
+          <p className="mt-4 text-base leading-relaxed text-slate-700">
+            <span className="font-bold text-slate-900">「根拠」がないだけです。</span>
+          </p>
+          <p className="mt-4 text-base font-bold text-amber-700">
+            → 根拠があれば、話は変わります。
+          </p>
+        </div>
+
+        {/* --- 3-D: 見積もりフォーム --- */}
+        <div id="inquiry" className="mt-10 scroll-mt-4">
+          <Card className="border-slate-200 bg-white shadow-lg">
+            <CardContent className="pt-6 pb-6">
+              <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-amber-100">
+                <Mail className="h-5 w-5 text-amber-600" />
+              </div>
+              <h3 className="mb-1 text-center text-lg font-bold text-slate-900">
+                運送会社向け 無料で見積もりを受け取る
+              </h3>
+              <p className="mb-6 text-center text-sm text-slate-500">
+                {quoteMailMode === "with-diagnosis"
+                  ? "メールアドレス入力だけで完了します"
+                  : "メールアドレス入力だけで完了します"}
+              </p>
+              <form onSubmit={handleQuoteSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="inq-email" className="text-sm font-semibold text-slate-700">
+                    メールアドレス
+                  </Label>
                   <Input
-                    id="quote-company"
-                    value={inquiry.companyName}
-                    onChange={(e) =>
-                      setInquiry((s) => ({ ...s, companyName: e.target.value }))
-                    }
-                    placeholder="例：株式会社○○運輸"
-                    className={inquiryErrors.companyName ? "border-red-500" : ""}
-                    autoComplete="organization"
-                  />
-                  {inquiryErrors.companyName ? (
-                    <p className="text-xs text-red-600">{inquiryErrors.companyName}</p>
-                  ) : null}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="quote-contact">{"担当者名"}</Label>
-                  <Input
-                    id="quote-contact"
-                    value={inquiry.contactName}
-                    onChange={(e) =>
-                      setInquiry((s) => ({ ...s, contactName: e.target.value }))
-                    }
-                    placeholder="例：山田 太郎"
-                    className={inquiryErrors.contactName ? "border-red-500" : ""}
-                    autoComplete="name"
-                  />
-                  {inquiryErrors.contactName ? (
-                    <p className="text-xs text-red-600">{inquiryErrors.contactName}</p>
-                  ) : null}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="quote-email">{"連絡用メール"}</Label>
-                  <Input
-                    id="quote-email"
+                    id="inq-email"
                     type="email"
                     inputMode="email"
                     value={inquiry.contactEmail}
-                    onChange={(e) =>
-                      setInquiry((s) => ({ ...s, contactEmail: e.target.value }))
-                    }
+                    onChange={(e) => setInquiry((s) => ({ ...s, contactEmail: e.target.value }))}
                     placeholder="例：taro@example.co.jp"
-                    className={inquiryErrors.contactEmail ? "border-red-500" : ""}
+                    className={`py-4 text-base ${inquiryErrors.contactEmail ? "border-red-500" : ""}`}
                     autoComplete="email"
                   />
                   {inquiryErrors.contactEmail ? (
-                    <p className="text-xs text-red-600">{inquiryErrors.contactEmail}</p>
+                    <p className="text-sm text-red-600">{inquiryErrors.contactEmail}</p>
                   ) : null}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="quote-phone">{"電話番号"}</Label>
-                  <Input
-                    id="quote-phone"
-                    type="tel"
-                    inputMode="tel"
-                    value={inquiry.contactPhone}
-                    onChange={(e) =>
-                      setInquiry((s) => ({ ...s, contactPhone: e.target.value }))
-                    }
-                    placeholder="例：03-1234-5678"
-                    className={inquiryErrors.contactPhone ? "border-red-500" : ""}
-                    autoComplete="tel"
-                  />
-                  {inquiryErrors.contactPhone ? (
-                    <p className="text-xs text-red-600">{inquiryErrors.contactPhone}</p>
-                  ) : null}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="quote-note">{"ご要望・備考（任意）"}</Label>
-                  <Textarea
-                    id="quote-note"
-                    value={inquiry.requestNote}
-                    onChange={(e) =>
-                      setInquiry((s) => ({ ...s, requestNote: e.target.value }))
-                    }
-                    placeholder="希望納期、対象路線の概要など"
-                    rows={3}
-                    className="resize-y"
-                  />
-                </div>
-              </div>
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setQuoteDialogOpen(false)}
-                >
-                  {"キャンセル"}
-                </Button>
-                <Button type="submit" className="bg-slate-900 hover:bg-slate-800">
-                  <Mail className="mr-2 h-4 w-4" />
-                  {"メールアプリで送信"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
 
-        <p className="mt-6 text-center text-xs text-slate-400">
-          {"※簡易シミュレーションです。目安運賃は現在の運賃に10%を加えたデモ値です。実際の金額とは異なる場合があります。"}
+                {quoteMailMode === "with-diagnosis" && (
+                  <p className="text-center text-xs text-slate-400">
+                    ※車格・距離・運賃は診断結果から自動送信されます（発地・着地はメール返信で確認）
+                  </p>
+                )}
+                {quoteMailMode === "without-diagnosis" && (
+                  <p className="text-center text-xs text-slate-400">
+                    ※車格・距離・発着地はメール返信で確認します
+                  </p>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-slate-800 to-slate-900 py-7 text-lg font-bold hover:from-slate-700 hover:to-slate-800"
+                >
+                  運送会社向け 見積もりを依頼する
+                </Button>
+                <p className="text-center text-xs text-slate-400">
+                  ※営業電話・しつこい連絡は一切ありません
+                </p>
+              </form>
+
+              {/* ご利用の流れ */}
+              <div className="mt-6 border-t border-slate-100 pt-6">
+                <p className="mb-4 text-center text-sm font-semibold text-slate-500">ご利用の流れ</p>
+                <div className="space-y-3">
+                  {[
+                    { icon: FileCheck, step: "1", text: "お見積もりをメールでお届け" },
+                    { icon: MessageSquare, step: "2", text: "商品を選択・お申し込み" },
+                    { icon: Package, step: "3", text: "納品（そのまま交渉に使えます）" },
+                  ].map(({ icon: Icon, step, text }) => (
+                    <div key={step} className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100">
+                        <Icon className="h-4 w-4 text-slate-500" />
+                      </div>
+                      <p className="text-sm text-slate-600">
+                        <span className="mr-1.5 font-bold text-slate-800">{step}.</span>
+                        {text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-5 text-center text-sm text-slate-600">
+                  納品後に請求書が届きます。
+                  <span className="font-bold text-slate-800">安心の後払い。</span>
+                </p>
+                <p className="mt-2 text-center text-xs text-slate-400">
+                  ※契約の義務はありません
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <p className="mt-5 text-center text-xs leading-relaxed text-slate-400">
+          ※簡易試算です。目安運賃は現在運賃+10%のデモ値です。交渉代行・契約書作成は行いません。
         </p>
+
+        <div className="mt-12 space-y-1 text-center text-xs text-slate-400">
+          <p>© 2026 運賃交渉支援サービス</p>
+          <p>Product by NicheBase</p>
+        </div>
       </div>
     </section>
   )

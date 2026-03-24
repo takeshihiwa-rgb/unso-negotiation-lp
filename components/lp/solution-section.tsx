@@ -1,21 +1,24 @@
-import { FileText, BarChart3, MessageSquare } from "lucide-react"
+import { Search, FileCheck, MessageSquare } from "lucide-react"
 
 export function SolutionSection() {
   const solutions = [
     {
-      icon: BarChart3,
-      label: "根拠",
-      description: "公的データ",
+      icon: Search,
+      number: "①",
+      title: "ズレを可視化",
+      description: "原価と運賃の差を数字で明確化",
     },
     {
-      icon: FileText,
-      label: "資料",
-      description: "稟議が通る形",
+      icon: FileCheck,
+      number: "②",
+      title: "否定できない資料に変換",
+      description: "公的データベースで裏付け",
     },
     {
       icon: MessageSquare,
-      label: "伝え方",
-      description: "関係を壊さない",
+      number: "③",
+      title: "断られない伝え方を設計",
+      description: "関係を壊さず通す",
     },
   ]
 
@@ -27,18 +30,24 @@ export function SolutionSection() {
           <br />
           <span className="text-amber-400">設計します</span>
         </h2>
+        <p className="mx-auto mb-4 max-w-xl text-slate-300">
+          私たちは
+          <br />
+          <span className="font-bold text-white">荷主が「断れない形」に整えます</span>
+        </p>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-3">
-          {solutions.map((item, i) => (
+          {solutions.map((item) => (
             <div
-              key={i}
-              className="rounded-xl border border-slate-700 bg-slate-800/50 p-6"
+              key={item.number}
+              className="rounded-xl border border-slate-700 bg-slate-800/50 p-6 text-left sm:text-center"
             >
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/20">
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/20 sm:mx-auto">
                 <item.icon className="h-7 w-7 text-amber-400" />
               </div>
-              <p className="text-lg font-bold text-white">{item.label}</p>
-              <p className="mt-1 text-sm text-slate-400">{item.description}</p>
+              <p className="mb-1 text-sm font-bold text-amber-400">{item.number}</p>
+              <p className="text-lg font-bold text-white">{item.title}</p>
+              <p className="mt-2 text-sm text-slate-400">{item.description}</p>
             </div>
           ))}
         </div>
