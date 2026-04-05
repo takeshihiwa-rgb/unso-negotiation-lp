@@ -179,8 +179,13 @@ export function DiagnosisSection() {
             <Calculator className="h-7 w-7 text-white" />
           </div>
           <p className="text-sm font-medium text-amber-600">運送会社向け 無料診断</p>
-          <h2 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
-            運送会社向け：<span className="text-amber-600">30秒</span>で値上げ可能額を表示
+          <p className="mt-3 text-base leading-relaxed text-slate-700 sm:text-lg">
+            まずは「いくら交渉の余地があるか」を可視化。
+            <br />
+            30秒で、御社の適正運賃とのギャップを算出します。
+          </p>
+          <h2 className="mt-3 text-xl font-bold text-slate-900 sm:text-2xl">
+            <span className="text-amber-600">30秒</span>で値上げ可能額を表示
           </h2>
           <button
             type="button"
@@ -269,6 +274,9 @@ export function DiagnosisSection() {
             >
               運送会社向け 値上げ可能額を確認
             </Button>
+            <p className="text-center text-xs leading-relaxed text-slate-500">
+              ※入力した情報は、資料作成の目安以外には使用しません。営業電話も一切ありません
+            </p>
           </CardContent>
         </Card>
 
