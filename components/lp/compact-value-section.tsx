@@ -12,9 +12,6 @@ export function CompactValueSection() {
       <div className="mx-auto max-w-3xl">
         <div className="mb-10 text-center">
           <p className="text-sm font-semibold text-amber-600">このサービスでできること</p>
-          <p className="text-lg leading-relaxed text-slate-800 sm:text-xl">
-            運賃値上げ交渉に必要な「根拠資料」を作成します。
-          </p>
           <p className="mt-2 text-lg font-bold text-slate-900 sm:text-xl">
             問題は「交渉力不足」ではなく「根拠不足」です。
           </p>
@@ -43,16 +40,6 @@ export function CompactValueSection() {
             </div>
           ))}
         </div>
-
-        <div className="mt-8 rounded-lg bg-amber-50 px-5 py-4 text-center">
-          <p className="text-sm leading-relaxed text-amber-950 sm:text-base">
-            すべて<span className="font-bold">証拠付き</span>で出します。
-            そのまま<span className="font-bold">交渉資料として使えます</span>。
-          </p>
-        </div>
-        <p className="mt-3 text-center text-xs text-slate-400 sm:text-sm">
-          標準運賃・物価など公的データで裏付けます
-        </p>
       </div>
     </section>
   )

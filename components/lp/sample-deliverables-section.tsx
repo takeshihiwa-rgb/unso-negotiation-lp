@@ -98,9 +98,6 @@ export function SampleDeliverablesSection() {
                   タップで拡大
                 </span>
               </button>
-              <p className="mt-2 flex-1 text-xs leading-relaxed text-slate-600 sm:text-sm">
-                {description}
-              </p>
             </li>
           ))}
         </ul>

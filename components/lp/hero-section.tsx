@@ -10,7 +10,7 @@ const realities = [
   { icon: TrendingDown, text: "でも運賃は据え置き" },
 ] as const
 
-/** β版バッジ（メインコピー基準・PCは右上に浮かせる／スマホは小型） */
+/** β版バッジ（md 以上：円形・h1 右上） */
 function BetaBadge({ className }: { className?: string }) {
   return (
     <div
@@ -56,6 +56,27 @@ export function HeroSection() {
           </p>
         </div>
 
+        {/* md 未満のみ：帯直下の全幅リボン（はみ出し防止・円形は md 以上のみ） */}
+        <div className="border-b border-white/10 md:hidden">
+          <p
+            role="status"
+            aria-label="β版限定・特別価格実施中"
+            className="w-full bg-[#E67E22] px-3 py-2.5 text-center text-[11px] font-bold leading-snug text-white shadow-[inset_0_-1px_0_rgba(0,0,0,0.08)] [text-shadow:0_1px_1px_rgba(0,0,0,0.12)] sm:px-4 sm:py-3 sm:text-xs"
+          >
+            <span className="inline-flex flex-wrap items-center justify-center gap-x-0 gap-y-1">
+              <span>β版限定</span>
+              <span className="mx-1.5 text-white/55 sm:mx-2" aria-hidden>
+                |
+              </span>
+              <span>特別価格</span>
+              <span className="mx-1.5 text-white/55 sm:mx-2" aria-hidden>
+                |
+              </span>
+              <span>実施中</span>
+            </span>
+          </p>
+        </div>
+
         {/* Primary: 感情フック → 約束（最大） → CTA（ファーストビュー優先） */}
         <div className="relative flex min-h-[min(100svh,880px)] flex-col items-center justify-center px-5 pb-10 pt-10 sm:pb-12 sm:pt-14">
           <div className="mx-auto w-full max-w-4xl text-center">
@@ -71,11 +92,14 @@ export function HeroSection() {
 
             <div className="relative mt-6 sm:mt-7">
               <h1 className="text-balance text-2xl font-bold leading-snug tracking-tight text-white sm:text-3xl sm:leading-snug md:text-4xl md:leading-tight lg:text-5xl [text-shadow:0_2px_28px_rgba(0,0,0,0.55)]">
-                公的データを根拠に、荷主が断りにくい交渉資料を作成します。
+                もう、荷主への交渉で悩みたくない。
               </h1>
-              {/* メインコピーに紐づく：PC top:-40px right:-20px・z-10・rotate 10deg／スマホ 70px・top:-30px right:0 */}
-              <div className="pointer-events-none absolute top-[-30px] right-0 z-10 h-[70px] w-[70px] translate-x-[35px] -translate-y-[70px] rotate-[10deg] sm:-top-[40px] sm:-right-[20px] sm:h-[224px] sm:w-[224px] sm:translate-x-[112px] sm:-translate-y-[224px] md:h-[240px] md:w-[240px] md:translate-x-[120px] md:-translate-y-[240px]">
-                <BetaBadge className="h-full w-full text-[0.75rem] leading-[1.1] sm:text-[22px] sm:leading-[1.12] md:text-2xl" />
+              <p className="mx-auto mt-4 max-w-3xl text-balance text-xs font-medium leading-relaxed text-white sm:mt-5 sm:text-sm md:text-lg lg:mt-6 lg:text-2xl [text-shadow:0_1px_16px_rgba(0,0,0,0.45)]">
+                公的データを根拠に、荷主が断りにくい交渉資料を作成します。
+              </p>
+              {/* md 以上のみ：メインコピー右上の円形シール（未満は帯直下の全幅リボン） */}
+              <div className="pointer-events-none absolute -top-[40px] -right-[20px] z-10 hidden h-[224px] w-[224px] translate-x-[112px] -translate-y-[224px] rotate-[10deg] md:block md:h-[240px] md:w-[240px] md:translate-x-[120px] md:-translate-y-[240px]">
+                <BetaBadge className="h-full w-full text-[22px] leading-[1.12] md:text-2xl" />
               </div>
             </div>
 
